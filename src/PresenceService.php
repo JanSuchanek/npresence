@@ -89,14 +89,17 @@ class PresenceService
 
 		$now = time();
 		foreach ($sessions as &$s) {
-			$hb = strtotime($s['last_heartbeat']);
+			$hbStr = is_string($s['last_heartbeat'] ?? null) ? $s['last_heartbeat'] : '';
+			$hb = strtotime($hbStr);
 			$diff = $now - $hb;
 			$s['status'] = $diff < 120 ? 'online' : ($diff < $this->staleMinutes * 60 ? 'away' : 'offline');
 			$s['ago'] = $this->formatAgo($diff);
-			$s['browser'] = $this->parseBrowser($s['user_agent'] ?? '');
-			$s['duration'] = $this->formatDuration($now - strtotime($s['logged_in_at'] ?? $s['last_heartbeat']));
+			$s['browser'] = $this->parseBrowser(is_string($s['user_agent'] ?? null) ? $s['user_agent'] : '');
+			$loginStr = is_string($s['logged_in_at'] ?? null) ? $s['logged_in_at'] : $hbStr;
+			$s['duration'] = $this->formatDuration($now - strtotime($loginStr));
 		}
 
+		/** @var list<array{id: int, user_id: int, full_name: string, email: string, current_page: string, status: string, last_heartbeat: string, browser: string, ago: string}> $sessions */
 		return $sessions;
 	}
 
@@ -110,11 +113,14 @@ class PresenceService
 	{
 		$since = (new \DateTime("-{$this->staleMinutes} minutes"))->format('Y-m-d H:i:s');
 
-		return $this->connection->fetchAllAssociative(
+		/** @var list<array{user_id: int, full_name: string, email: string}> $result */
+		$result = $this->connection->fetchAllAssociative(
 			"SELECT DISTINCT user_id, full_name, email
 			 FROM user_session WHERE last_heartbeat > ?",
 			[$since],
 		);
+
+		return $result;
 	}
 
 
@@ -150,7 +156,7 @@ class PresenceService
 	{
 		$cutoff = (new \DateTime("-{$hoursOld} hours"))->format('Y-m-d H:i:s');
 
-		return $this->connection->executeStatement(
+		return (int) $this->connection->executeStatement(
 			"DELETE FROM user_session WHERE last_heartbeat < ?",
 			[$cutoff],
 		);
