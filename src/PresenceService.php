@@ -120,6 +120,8 @@ class PresenceService
 
 	/**
 	 * Get recent activity log.
+	 *
+	 * @return list<array<string, mixed>>
 	 */
 	public function getRecentActivity(int $limit = 50): array
 	{

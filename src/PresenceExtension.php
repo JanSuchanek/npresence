@@ -31,6 +31,7 @@ class PresenceExtension extends CompilerExtension
 	public function loadConfiguration(): void
 	{
 		$builder = $this->getContainerBuilder();
+		/** @var \stdClass $config */
 		$config = $this->getConfig();
 
 		$builder->addDefinition($this->prefix('service'))
